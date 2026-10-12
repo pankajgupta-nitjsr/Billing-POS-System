@@ -243,7 +243,17 @@ export const AppShell: React.FC = () => {
                   isOwner ? 'bg-indigo-600' : 'bg-amber-600'
                 }`}
               >
-                {isOwner ? 'CG' : 'CS'}
+                {currentUser?.name
+                  ? currentUser.name
+                      .trim()
+                      .split(' ')
+                      .map((p) => p[0])
+                      .slice(0, 2)
+                      .join('')
+                      .toUpperCase()
+                  : isOwner
+                  ? 'OW'
+                  : 'CS'}
               </div>
               <div className="truncate text-xs">
                 <p className="font-bold truncate text-slate-900 dark:text-white">

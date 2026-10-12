@@ -124,4 +124,41 @@ describe('Shop Owner & Cashier Security Suite', () => {
     const refreshed = db.getUsers().find((u) => u.id === amit.id);
     expect(refreshed?.active).toBe(false);
   });
+
+  it('dynamically establishes any authenticated Google user as global store owner', () => {
+    const customGoogleUser = {
+      id: 'user_owner_custom_01',
+      name: 'Ramesh Chandra Verma',
+      email: 'ramesh.verma@a2zmart.in',
+      role: 'OWNER' as const,
+      authProvider: 'GOOGLE' as const,
+      storeId: 'store_main_01',
+      active: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    db.saveUser(customGoogleUser);
+
+    const refreshedOwner = db.getUsers().find((u) => u.email === 'ramesh.verma@a2zmart.in');
+    expect(refreshedOwner).toBeDefined();
+    expect(refreshedOwner?.name).toBe('Ramesh Chandra Verma');
+    expect(refreshedOwner?.role).toBe('OWNER');
+    expect(refreshedOwner?.authProvider).toBe('GOOGLE');
+
+    // Cashiers assigned by this dynamic owner reflect their identity
+    const newCashier = db.createCashierByOwner(
+      {
+        name: 'Vikas Shah',
+        email: 'vikas.shah@a2zmart.in',
+        employeeCode: 'CSH-104',
+        pin: '2345',
+        active: true,
+        storeId: 'store_main_01',
+      },
+      refreshedOwner!
+    );
+
+    expect(newCashier.success).toBe(true);
+    expect(newCashier.cashier?.assignedByName).toBe('Ramesh Chandra Verma');
+  });
 });

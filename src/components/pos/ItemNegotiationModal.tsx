@@ -20,7 +20,7 @@ export const ItemNegotiationModal: React.FC<ItemNegotiationModalProps> = ({
   onClose,
   onApplyNegotiation,
 }) => {
-  const { isOwner, currentUser, verifyOwnerPin } = useAuth();
+  const { isOwner, currentUser, verifyOwnerPin, allUsers } = useAuth();
   const [customerOfferInput, setCustomerOfferInput] = useState<string>(
     item.customerOffer ? String(item.customerOffer) : '300'
   );
@@ -71,7 +71,8 @@ export const ItemNegotiationModal: React.FC<ItemNegotiationModalProps> = ({
         setPinError('Invalid Owner PIN. Override authorization denied.');
         return;
       }
-      approverName = 'Chandan Kumar Gupta (Owner Approved via PIN)';
+      const owner = allUsers.find((u) => u.role === 'OWNER');
+      approverName = `${owner?.name || 'Shop Owner'} (Owner Approved via PIN)`;
     }
 
     // 3. Apply to cart

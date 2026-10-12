@@ -15,30 +15,34 @@ import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 
 export const LoginScreen: React.FC = () => {
-  const { loginWithGoogle, loginWithEmail, loginWithCashierCredentials, isAuthenticated, isOwner } = useAuth();
+  const { loginWithGoogle, loginWithEmail, loginWithCashierCredentials, isAuthenticated, isOwner, allUsers } = useAuth();
   const { settings } = useStore();
   const navigate = useNavigate();
 
   const [tab, setTab] = useState<'OWNER' | 'CASHIER'>('OWNER');
   const [cashierIdentifier, setCashierIdentifier] = useState('CSH-101');
   const [cashierSecret, setCashierSecret] = useState('5678');
+  const [landingTarget, setLandingTarget] = useState<'POS' | 'DASHBOARD'>('POS');
+  const [customNameInput, setCustomNameInput] = useState('');
+  const [customEmailInput, setCustomEmailInput] = useState('');
+  const [showCustomModal, setShowCustomModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // If already authenticated, redirect
+  // If already authenticated, redirect to destination
   React.useEffect(() => {
     if (isAuthenticated) {
-      navigate(isOwner ? '/' : '/pos', { replace: true });
+      navigate('/pos', { replace: true });
     }
-  }, [isAuthenticated, isOwner, navigate]);
+  }, [isAuthenticated, navigate]);
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (custom?: { name: string; email: string }) => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const res = await loginWithGoogle();
+      const res = await loginWithGoogle(custom);
       if (res.success) {
-        navigate('/');
+        navigate(landingTarget === 'POS' ? '/pos' : '/');
       } else {
         setErrorMsg(res.error || 'Google Authentication failed');
       }
@@ -128,20 +132,54 @@ export const LoginScreen: React.FC = () => {
             /* OWNER LOGIN WITH GOOGLE AUTH */
             <div className="space-y-4">
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                <p className="font-semibold text-slate-900 dark:text-white">
-                  Shop Owner: <span className="text-emerald-600 dark:text-emerald-400 font-bold">Chandan Kumar Gupta</span>
+                <p className="font-semibold text-slate-900 dark:text-white flex items-center justify-between">
+                  <span>Store Owner Authentication</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded text-[10px]">
+                    Global Admin
+                  </span>
                 </p>
                 <p>
-                  Access the full management suite, reports, floor prices, and assign cashier accounts with unique PINs.
+                  Authenticate via your Google account to manage inventory, floor pricing, staff cashiers, and operate the POS terminal.
                 </p>
               </div>
 
-              {/* Google Auth Button */}
+              {/* Landing Destination Selection */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-xs">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  After Google Login:
+                </span>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setLandingTarget('POS')}
+                    className={`px-2.5 py-1 rounded-lg font-medium transition ${
+                      landingTarget === 'POS'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    POS Terminal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLandingTarget('DASHBOARD')}
+                    className={`px-2.5 py-1 rounded-lg font-medium transition ${
+                      landingTarget === 'DASHBOARD'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    Dashboard
+                  </button>
+                </div>
+              </div>
+
+              {/* Dynamic Google Auth Button */}
               <button
                 type="button"
                 disabled={isLoading}
-                onClick={handleGoogleLogin}
-                className="w-full py-3 px-4 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-800 dark:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-sm transition active:scale-[0.99] disabled:opacity-50"
+                onClick={() => handleGoogleLogin()}
+                className="w-full py-3.5 px-4 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-400 text-slate-800 dark:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-sm transition active:scale-[0.99] disabled:opacity-50"
               >
                 {/* Google Multi-Color SVG Icon */}
                 <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
@@ -162,13 +200,18 @@ export const LoginScreen: React.FC = () => {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span>Continue with Google as Chandan Kumar Gupta</span>
+                <span>Sign In with Google (Owner / Admin)</span>
               </button>
 
-              <div className="pt-2 text-center">
-                <span className="text-[11px] text-slate-400">
-                  Protected with Firebase OAuth &bull; Multi-Store Isolation
-                </span>
+              <div className="flex items-center justify-between text-[11px] pt-1">
+                <span className="text-slate-400">OAuth Security &bull; Multi-Store Isolation</span>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomModal(true)}
+                  className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
+                >
+                  Custom Google ID &rarr;
+                </button>
               </div>
             </div>
           ) : (
@@ -221,14 +264,19 @@ export const LoginScreen: React.FC = () => {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={handleGoogleLogin}
+                onClick={() =>
+                  handleGoogleLogin({
+                    name: 'Chandan Kumar Gupta',
+                    email: 'chandankumargupta@a2zmart.in',
+                  })
+                }
                 className="flex-1 p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-left transition"
               >
                 <span className="font-bold block text-slate-800 dark:text-slate-200">
                   Chandan Kumar Gupta
                 </span>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
-                  Owner (Google Auth)
+                  Default Owner (Google)
                 </span>
               </button>
 
@@ -252,6 +300,73 @@ export const LoginScreen: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal for Custom Google Account Simulation */}
+      {showCustomModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-sm shadow-2xl p-5 space-y-4 text-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <span className="font-bold text-slate-900 dark:text-white text-sm">
+                Sign In As Custom Google Owner
+              </span>
+              <button onClick={() => setShowCustomModal(false)} className="text-slate-400">
+                &times;
+              </button>
+            </div>
+            <p className="text-slate-500">
+              Enter any name and Google email to test dynamic store owner global authentication:
+            </p>
+            <div className="space-y-2">
+              <div>
+                <label className="block font-medium mb-1 text-slate-700 dark:text-slate-300">
+                  Owner Full Name
+                </label>
+                <input
+                  type="text"
+                  value={customNameInput}
+                  onChange={(e) => setCustomNameInput(e.target.value)}
+                  placeholder="e.g. Ramesh Chandra Verma"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block font-medium mb-1 text-slate-700 dark:text-slate-300">
+                  Google Email Address
+                </label>
+                <input
+                  type="email"
+                  value={customEmailInput}
+                  onChange={(e) => setCustomEmailInput(e.target.value)}
+                  placeholder="e.g. ramesh.owner@gmail.com"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCustomModal(false)}
+                className="flex-1 py-2 rounded-xl border border-slate-200 dark:border-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCustomModal(false);
+                  handleGoogleLogin({
+                    name: customNameInput.trim() || 'Verified Shop Owner',
+                    email: customEmailInput.trim() || 'owner@gmail.com',
+                  });
+                }}
+                className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              >
+                Sign In to POS
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

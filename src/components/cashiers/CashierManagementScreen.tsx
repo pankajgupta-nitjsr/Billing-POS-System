@@ -219,7 +219,7 @@ export const CashierManagementScreen: React.FC = () => {
               </div>
               <div className="flex justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] text-slate-400">
                 <span>Assigned By:</span>
-                <span>{csh.assignedByName || 'Chandan Kumar Gupta'}</span>
+                <span>{csh.assignedByName || currentUser?.name || 'Shop Owner'}</span>
               </div>
             </div>
 
@@ -264,7 +264,9 @@ export const CashierManagementScreen: React.FC = () => {
                   <h3 className="font-bold text-slate-900 dark:text-white text-base">
                     {editingCashier ? 'Edit Cashier Credentials' : 'Assign New Cashier'}
                   </h3>
-                  <p className="text-xs text-slate-500">Owner Authorization: Chandan Kumar Gupta</p>
+                  <p className="text-xs text-slate-500">
+                    Owner Authorization: {currentUser?.name || 'Shop Owner'}
+                  </p>
                 </div>
               </div>
               <button onClick={() => setModalOpen(false)} className="text-slate-400">

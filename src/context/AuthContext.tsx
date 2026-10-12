@@ -10,7 +10,7 @@ interface AuthContextType {
   loading: boolean;
   isOwner: boolean;
   isCashier: boolean;
-  loginWithGoogle: () => Promise<{ success: boolean; user?: User; error?: string }>;
+  loginWithGoogle: (customDetails?: { name?: string; email?: string }) => Promise<{ success: boolean; user?: User; error?: string }>;
   loginWithEmail: (email: string, password?: string) => { success: boolean; user?: User; error?: string };
   loginWithCashierCredentials: (
     identifier: string, // email or employee code or PIN
@@ -76,10 +76,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, [currentUser]);
 
-  const loginWithGoogle = async (): Promise<{ success: boolean; user?: User; error?: string }> => {
+  const loginWithGoogle = async (customDetails?: {
+    name?: string;
+    email?: string;
+  }): Promise<{ success: boolean; user?: User; error?: string }> => {
     try {
-      let googleEmail = 'chandankumargupta@a2zmart.in';
-      let googleName = 'Chandan Kumar Gupta';
+      const existingOwner = users.find((u) => u.role === 'OWNER') || users[0];
+      let googleEmail = customDetails?.email || existingOwner?.email || 'chandankumargupta@a2zmart.in';
+      let googleName = customDetails?.name || existingOwner?.name || 'Chandan Kumar Gupta';
 
       // Attempt live Firebase Google popup if keys are configured
       if (isFirebaseConfigured()) {
@@ -89,15 +93,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (result.user.email) googleEmail = result.user.email;
           if (result.user.displayName) googleName = result.user.displayName;
         } catch (fbErr: any) {
-          console.warn('Firebase popup unavailable, using verified Google Owner profile:', fbErr);
+          console.warn('Firebase popup unavailable, continuing with verified Google Owner profile:', fbErr);
         }
       }
 
-      // Find or establish Chandan Kumar Gupta as Shop Owner
-      const existingOwner = users.find((u) => u.role === 'OWNER') || users[0];
+      // Establish the Google account as the global authenticated Shop Owner
       const authenticatedOwner: User = {
         ...existingOwner,
-        name: 'Chandan Kumar Gupta',
+        id: existingOwner?.id || `user_owner_${Date.now()}`,
+        name: googleName,
         email: googleEmail,
         role: 'OWNER',
         authProvider: 'GOOGLE',
@@ -112,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       db.addAuditLog({
         action: 'Google Authentication Sign-In',
         category: 'AUTH',
-        details: `Shop Owner Chandan Kumar Gupta signed in via Google Auth (${googleEmail})`,
+        details: `Shop Owner ${authenticatedOwner.name} signed in via Google Auth (${googleEmail})`,
         userId: authenticatedOwner.id,
         userName: authenticatedOwner.name,
         userRole: 'OWNER',
@@ -183,7 +187,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (!match.active) {
-      return { success: false, error: 'This cashier account has been deactivated by Chandan Kumar Gupta.' };
+      const owner = users.find((u) => u.role === 'OWNER');
+      return { success: false, error: `This cashier account has been deactivated by the store owner (${owner?.name || 'Admin'}).` };
     }
 
     // Validate PIN or password
@@ -250,7 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Cashier management wrappers (Owner only)
   const createCashier = (data: Omit<User, 'id' | 'role' | 'createdAt'>) => {
     if (!currentUser || currentUser.role !== 'OWNER') {
-      return { success: false, error: 'Only shop owner Chandan Kumar Gupta can assign cashiers' };
+      return { success: false, error: 'Only authorized shop owner can assign cashiers' };
     }
     return db.createCashierByOwner(data, currentUser);
   };

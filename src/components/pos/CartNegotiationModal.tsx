@@ -10,7 +10,7 @@ interface CartNegotiationModalProps {
 
 export const CartNegotiationModal: React.FC<CartNegotiationModalProps> = ({ onClose }) => {
   const { items, applyCartNegotiation, subtotal, total } = useCart();
-  const { isOwner, currentUser, verifyOwnerPin } = useAuth();
+  const { isOwner, currentUser, verifyOwnerPin, allUsers } = useAuth();
 
   const [customerOfferInput, setCustomerOfferInput] = useState<string>(
     String(Math.round(total * 0.9))
@@ -50,7 +50,8 @@ export const CartNegotiationModal: React.FC<CartNegotiationModalProps> = ({ onCl
         setPinError('Invalid Owner PIN.');
         return;
       }
-      approverName = 'Chandan Kumar Gupta (Owner Approved)';
+      const owner = allUsers.find((u) => u.role === 'OWNER');
+      approverName = `${owner?.name || 'Shop Owner'} (Owner Approved via PIN)`;
     }
 
     const res = applyCartNegotiation(ownerFinal, customerOffer, approverName);
