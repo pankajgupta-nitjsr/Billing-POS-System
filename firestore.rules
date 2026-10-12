@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Multi-tenant helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData(storeId) {
+      return get(/databases/$(database)/documents/stores/$(storeId)/users/$(request.auth.uid)).data;
+    }
+    
+    function isStoreMember(storeId) {
+      return isAuthenticated() && exists(/databases/$(database)/documents/stores/$(storeId)/users/$(request.auth.uid));
+    }
+    
+    function isOwner(storeId) {
+      return isStoreMember(storeId) && getUserData(storeId).role == 'OWNER';
+    }
+    
+    function isCashier(storeId) {
+      return isStoreMember(storeId) && getUserData(storeId).role == 'CASHIER';
+    }
+
+    match /stores/{storeId} {
+      allow read: if isStoreMember(storeId);
+      allow write: if isOwner(storeId);
+
+      // Store users
+      match /users/{userId} {
+        allow read: if isStoreMember(storeId);
+        allow create, update, delete: if isOwner(storeId);
+      }
+
+      // Products collection
+      match /products/{productId} {
+        allow read: if isStoreMember(storeId);
+        // Only owners can create or delete products
+        allow create, delete: if isOwner(storeId);
+        // Cashiers cannot change floorPrice, costPrice, or permanent sellingPrice
+        allow update: if isOwner(storeId) || 
+          (isCashier(storeId) && 
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['floorPrice', 'costPrice', 'sellingPrice']));
+      }
+
+      // Sales collection
+      match /sales/{saleId} {
+        allow read: if isStoreMember(storeId);
+        // Both owner and cashier can create completed sales
+        allow create: if isStoreMember(storeId);
+        // Sales are financial documents - never deleted, only updated via returns/audit
+        allow update: if isOwner(storeId);
+        allow delete: if false;
+      }
+
+      // Stock movements ledger
+      match /stockMovements/{movementId} {
+        allow read: if isStoreMember(storeId);
+        allow create: if isStoreMember(storeId);
+        allow update, delete: if false; // Immutable ledger
+      }
+
+      // Purchases & Suppliers (Owner only for sensitive cost & suppliers)
+      match /purchases/{purchaseId} {
+        allow read, write: if isOwner(storeId);
+      }
+      
+      match /suppliers/{supplierId} {
+        allow read, write: if isOwner(storeId);
+      }
+
+      // Customers
+      match /customers/{customerId} {
+        allow read, create, update: if isStoreMember(storeId);
+        allow delete: if isOwner(storeId);
+      }
+
+      // Expenses
+      match /expenses/{expenseId} {
+        allow read, write: if isOwner(storeId);
+      }
+
+      // Shifts
+      match /shifts/{shiftId} {
+        allow read, create, update: if isStoreMember(storeId);
+        allow delete: if false;
+      }
+
+      // Audit logs (Strictly append-only)
+      match /auditLogs/{logId} {
+        allow read: if isOwner(storeId);
+        allow create: if isStoreMember(storeId);
+        allow update, delete: if false;
+      }
+    }
+  }
+}

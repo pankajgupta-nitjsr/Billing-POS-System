@@ -1,0 +1,16 @@
+{
+  "short_name": "A2Z Mart",
+  "name": "A2Z Mart — Retail POS & Inventory",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#090d16",
+  "theme_color": "#166534",
+  "display": "standalone",
+  "orientation": "any"
+}
