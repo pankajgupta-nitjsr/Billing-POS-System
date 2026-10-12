@@ -863,9 +863,13 @@ class AppDatabase {
     return this.load(STORAGE_KEYS.NEGOTIATIONS, []);
   }
 
-  // --- USER AUTH & PROFILES ---
+  // --- USER AUTH & CASHIER MANAGEMENT ---
   getUsers(): User[] {
     return this.load(STORAGE_KEYS.USERS, INITIAL_USERS);
+  }
+
+  getCashiers(): User[] {
+    return this.getUsers().filter((u) => u.role === 'CASHIER');
   }
 
   saveUser(user: User): void {
@@ -877,6 +881,178 @@ class AppDatabase {
     } else {
       this.save(STORAGE_KEYS.USERS, [user, ...users]);
     }
+  }
+
+  validateCashierUniqueFields(data: {
+    email: string;
+    employeeCode?: string;
+    pin?: string;
+    id?: string;
+  }): { isValid: boolean; error?: string } {
+    const users = this.getUsers();
+    const otherUsers = data.id ? users.filter((u) => u.id !== data.id) : users;
+
+    // Check unique email
+    const emailMatch = otherUsers.find(
+      (u) => u.email.toLowerCase() === data.email.trim().toLowerCase()
+    );
+    if (emailMatch) {
+      return {
+        isValid: false,
+        error: `Email "${data.email}" is already assigned to ${emailMatch.name}. Each staff member must have a unique email.`,
+      };
+    }
+
+    // Check unique employeeCode if provided
+    if (data.employeeCode?.trim()) {
+      const codeMatch = otherUsers.find(
+        (u) => u.employeeCode?.toUpperCase() === data.employeeCode?.trim().toUpperCase()
+      );
+      if (codeMatch) {
+        return {
+          isValid: false,
+          error: `Employee Code "${data.employeeCode}" is already assigned to ${codeMatch.name}. Codes must be strictly unique.`,
+        };
+      }
+    }
+
+    // Check unique PIN if provided
+    if (data.pin?.trim()) {
+      const pinMatch = otherUsers.find((u) => u.pin === data.pin?.trim());
+      if (pinMatch) {
+        return {
+          isValid: false,
+          error: `PIN "${data.pin}" is already used by ${pinMatch.name}. For security, each cashier must have a unique PIN.`,
+        };
+      }
+    }
+
+    return { isValid: true };
+  }
+
+  createCashierByOwner(
+    cashierData: Omit<User, 'id' | 'role' | 'createdAt'>,
+    owner: User
+  ): { success: boolean; cashier?: User; error?: string } {
+    const validation = this.validateCashierUniqueFields({
+      email: cashierData.email,
+      employeeCode: cashierData.employeeCode,
+      pin: cashierData.pin,
+    });
+
+    if (!validation.isValid) {
+      return { success: false, error: validation.error };
+    }
+
+    const newCashier: User = {
+      ...cashierData,
+      id: `csh_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      role: 'CASHIER',
+      storeId: owner.storeId || 'store_main_01',
+      active: true,
+      authProvider: 'EMAIL_PASSWORD',
+      assignedBy: owner.id,
+      assignedByName: owner.name,
+      createdAt: new Date().toISOString(),
+    };
+
+    const users = this.getUsers();
+    this.save(STORAGE_KEYS.USERS, [...users, newCashier]);
+
+    this.addAuditLog({
+      action: 'Assigned New Cashier',
+      category: 'AUTH',
+      details: `Owner ${owner.name} created cashier account "${newCashier.name}" (Code: ${newCashier.employeeCode || 'N/A'}, Station: ${newCashier.station || 'All'}, PIN: Protected)`,
+      userId: owner.id,
+      userName: owner.name,
+      userRole: 'OWNER',
+      storeId: owner.storeId,
+    });
+
+    return { success: true, cashier: newCashier };
+  }
+
+  updateCashierByOwner(
+    cashierId: string,
+    updates: Partial<User>,
+    owner: User
+  ): { success: boolean; cashier?: User; error?: string } {
+    const users = this.getUsers();
+    const existing = users.find((u) => u.id === cashierId);
+    if (!existing) {
+      return { success: false, error: 'Cashier not found' };
+    }
+
+    if (updates.email || updates.employeeCode || updates.pin) {
+      const validation = this.validateCashierUniqueFields({
+        email: updates.email || existing.email,
+        employeeCode: updates.employeeCode || existing.employeeCode,
+        pin: updates.pin || existing.pin,
+        id: cashierId,
+      });
+
+      if (!validation.isValid) {
+        return { success: false, error: validation.error };
+      }
+    }
+
+    const updatedCashier: User = {
+      ...existing,
+      ...updates,
+      id: existing.id,
+      role: 'CASHIER', // cannot self-promote
+    };
+
+    const updatedList = users.map((u) => (u.id === cashierId ? updatedCashier : u));
+    this.save(STORAGE_KEYS.USERS, updatedList);
+
+    this.addAuditLog({
+      action: 'Updated Cashier Credentials',
+      category: 'AUTH',
+      details: `Owner ${owner.name} updated cashier "${updatedCashier.name}" (${updatedCashier.employeeCode || ''})`,
+      userId: owner.id,
+      userName: owner.name,
+      userRole: 'OWNER',
+      storeId: owner.storeId,
+    });
+
+    return { success: true, cashier: updatedCashier };
+  }
+
+  toggleCashierStatus(
+    cashierId: string,
+    active: boolean,
+    owner: User
+  ): boolean {
+    const users = this.getUsers();
+    const target = users.find((u) => u.id === cashierId);
+    if (!target) return false;
+
+    const updated = users.map((u) =>
+      u.id === cashierId ? { ...u, active } : u
+    );
+    this.save(STORAGE_KEYS.USERS, updated);
+
+    this.addAuditLog({
+      action: active ? 'Activated Cashier Access' : 'Suspended Cashier Access',
+      category: 'AUTH',
+      details: `Owner ${owner.name} ${active ? 'activated' : 'deactivated'} POS billing access for ${target.name} (${target.employeeCode || ''})`,
+      userId: owner.id,
+      userName: owner.name,
+      userRole: 'OWNER',
+      storeId: owner.storeId,
+    });
+
+    return true;
+  }
+
+  deleteCashierByOwner(cashierId: string, owner: User): boolean {
+    const users = this.getUsers();
+    const target = users.find((u) => u.id === cashierId);
+    if (!target) return false;
+
+    // Do soft-deactivation to preserve sales audit records
+    return this.toggleCashierStatus(cashierId, false, owner);
   }
 
   // Reset database back to seed defaults

@@ -101,6 +101,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) return;
     setErrorMsg(null);
 
     const cost = parseFloat(costPrice) || 0;

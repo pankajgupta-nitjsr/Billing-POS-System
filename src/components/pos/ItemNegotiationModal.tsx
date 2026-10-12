@@ -61,7 +61,7 @@ export const ItemNegotiationModal: React.FC<ItemNegotiationModalProps> = ({
     }
 
     // 2. Authorization check: If logged in as Cashier, verify Owner PIN
-    let approverName = currentUser.name;
+    let approverName = currentUser?.name || 'Staff User';
     if (!isOwner) {
       if (!ownerPinInput.trim()) {
         setPinError('Owner PIN is required to authorize pricing override.');
@@ -71,7 +71,7 @@ export const ItemNegotiationModal: React.FC<ItemNegotiationModalProps> = ({
         setPinError('Invalid Owner PIN. Override authorization denied.');
         return;
       }
-      approverName = 'Rajesh Sharma (Owner Approved via PIN)';
+      approverName = 'Chandan Kumar Gupta (Owner Approved via PIN)';
     }
 
     // 3. Apply to cart

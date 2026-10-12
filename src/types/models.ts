@@ -7,7 +7,14 @@ export interface User {
   role: UserRole;
   storeId: string;
   active: boolean;
-  pin?: string; // 4-digit PIN for quick cashier auth & owner overrides
+  employeeCode?: string; // Strict unique employee ID e.g. CSH-101
+  phone?: string;
+  pin?: string;          // Strict unique 4-6 digit PIN for fast cashier POS access
+  password?: string;     // Password for cashier login
+  station?: string;      // Assigned Counter/Station (e.g. Counter 1, Grocery Counter)
+  authProvider?: 'GOOGLE' | 'EMAIL_PASSWORD' | 'PIN';
+  assignedBy?: string;   // Owner ID who assigned this cashier (e.g. Chandan Kumar Gupta)
+  assignedByName?: string;
   lastLogin?: string;
   createdAt: string;
 }

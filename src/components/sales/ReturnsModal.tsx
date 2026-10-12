@@ -46,6 +46,7 @@ export const ReturnsModal: React.FC<ReturnsModalProps> = ({
 
   const handleProcessReturn = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) return;
     setErrorMsg(null);
 
     const itemsToReturn: ReturnItem[] = [];

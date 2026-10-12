@@ -40,7 +40,7 @@ export const CartNegotiationModal: React.FC<CartNegotiationModalProps> = ({ onCl
       return;
     }
 
-    let approverName = currentUser.name;
+    let approverName = currentUser?.name || 'Staff User';
     if (!isOwner) {
       if (!ownerPinInput.trim()) {
         setPinError('Owner PIN is required to authorize cart discount.');
@@ -50,7 +50,7 @@ export const CartNegotiationModal: React.FC<CartNegotiationModalProps> = ({ onCl
         setPinError('Invalid Owner PIN.');
         return;
       }
-      approverName = 'Rajesh Sharma (Owner Approved)';
+      approverName = 'Chandan Kumar Gupta (Owner Approved)';
     }
 
     const res = applyCartNegotiation(ownerFinal, customerOffer, approverName);

@@ -289,7 +289,7 @@ export const PosScreen: React.FC = () => {
             <div>
               <h3 className="font-bold text-xs lg:text-sm text-slate-900 dark:text-white">Active Bill</h3>
               <p className="text-[11px] text-slate-500">
-                Cashier: {currentUser.name.split(' ')[0]} ({currentUser.role})
+                Cashier: {currentUser?.name?.split(' ')[0] || 'Staff'} ({currentUser?.role || 'AUTH'})
               </p>
             </div>
           </div>

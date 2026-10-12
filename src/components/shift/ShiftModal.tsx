@@ -82,7 +82,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({ onClose }) => {
             <form onSubmit={handleStart} className="space-y-4">
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 space-y-1">
                 <p className="font-medium text-slate-800 dark:text-slate-200">
-                  Cashier: <span className="font-semibold">{currentUser.name}</span>
+                  Cashier: <span className="font-semibold">{currentUser?.name || 'Staff User'}</span>
                 </p>
                 <p>Count the physical float cash in the drawer before starting billing.</p>
               </div>

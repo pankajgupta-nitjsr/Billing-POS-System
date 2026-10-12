@@ -92,6 +92,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ onClose, onSaleCompl
       }
     }
 
+    if (!currentUser) return;
     setIsSubmitting(true);
 
     try {

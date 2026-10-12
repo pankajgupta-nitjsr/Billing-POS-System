@@ -156,6 +156,8 @@ Dove Cream Soap 100g,DOV-001,DOV001,FMCG,Dove,45,65,58,52,18,40,pc,Mahalaxmi FMC
       return;
     }
 
+    if (!currentUser) return;
+
     validRows.forEach((r) => {
       const fullProd: Product = {
         id: `prod_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,

@@ -5,6 +5,8 @@ import { StoreProvider } from '@/context/StoreContext';
 import { CartProvider } from '@/context/CartContext';
 import { AppShell } from '@/components/layout/AppShell';
 
+import { LoginScreen } from '@/components/auth/LoginScreen';
+import { CashierManagementScreen } from '@/components/cashiers/CashierManagementScreen';
 import { OwnerDashboard } from '@/components/dashboard/OwnerDashboard';
 import { PosScreen } from '@/components/pos/PosScreen';
 import { ProductListScreen } from '@/components/products/ProductListScreen';
@@ -18,6 +20,26 @@ import { ReportsScreen } from '@/components/reports/ReportsScreen';
 import { LabelGeneratorScreen } from '@/components/labels/LabelGeneratorScreen';
 import { AuditLogScreen } from '@/components/audit/AuditLogScreen';
 import { SettingsScreen } from '@/components/settings/SettingsScreen';
+
+// Strict Authentication Guard - Blocks any entry to POS / store without authenticated session
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-900 text-white font-medium">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-sm tracking-wide text-slate-300">Verifying Security Authentication...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
 
 // Protected Route Guard for Owner-only screens
 const OwnerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -41,7 +63,18 @@ export const App: React.FC = () => {
         <CartProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<AppShell />}>
+              {/* Public Authentication Gate */}
+              <Route path="/login" element={<LoginScreen />} />
+
+              {/* Strict Authenticated System Shell */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <AppShell />
+                  </ProtectedRoute>
+                }
+              >
                 <Route index element={<RootRedirect />} />
                 <Route path="pos" element={<PosScreen />} />
                 <Route path="products" element={<ProductListScreen />} />
@@ -93,6 +126,14 @@ export const App: React.FC = () => {
                   element={
                     <OwnerRoute>
                       <AuditLogScreen />
+                    </OwnerRoute>
+                  }
+                />
+                <Route
+                  path="cashiers"
+                  element={
+                    <OwnerRoute>
+                      <CashierManagementScreen />
                     </OwnerRoute>
                   }
                 />

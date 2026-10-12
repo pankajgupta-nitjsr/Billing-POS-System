@@ -75,6 +75,7 @@ export const PurchasesScreen: React.FC = () => {
 
   const handleCreatePurchase = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) return;
     const supplier = suppliers.find((s) => s.id === supplierId);
     if (!supplier) return;
 

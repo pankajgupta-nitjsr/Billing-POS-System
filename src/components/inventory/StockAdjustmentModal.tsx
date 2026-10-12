@@ -31,6 +31,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 
   const handleAdjust = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) return;
     setErrorMsg(null);
 
     const qty = parseFloat(adjustQtyInput);

@@ -106,6 +106,7 @@ export const ProductListScreen: React.FC = () => {
   };
 
   const handleDeactivate = (prod: Product) => {
+    if (!currentUser) return;
     db.deactivateProduct(prod.id, currentUser);
     setDeleteConfirmTarget(null);
     addToast('info', 'Deactivated', `Product ${prod.name} has been deactivated.`);

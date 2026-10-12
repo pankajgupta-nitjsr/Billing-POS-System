@@ -28,6 +28,7 @@ export const ExpensesScreen: React.FC = () => {
 
   const handleRecordExpense = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser) return;
     const val = parseFloat(amount);
     if (isNaN(val) || val <= 0) return;
 

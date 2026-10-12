@@ -27,6 +27,7 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
@@ -34,7 +35,7 @@ import { PricingEngine } from '@/services/pricing/pricingEngine';
 import { ShiftModal } from '@/components/shift/ShiftModal';
 
 export const AppShell: React.FC = () => {
-  const { currentUser, switchUser, isOwner, activeShift } = useAuth();
+  const { currentUser, isOwner, activeShift, logout } = useAuth();
   const {
     settings,
     isOnline,
@@ -120,6 +121,12 @@ export const AppShell: React.FC = () => {
             to: '/reports',
             label: 'Reports & Analytics',
             icon: BarChart3,
+            badge: null,
+          },
+          {
+            to: '/cashiers',
+            label: 'Staff & Cashiers',
+            icon: UserCheck,
             badge: null,
           },
           {
@@ -227,32 +234,37 @@ export const AppShell: React.FC = () => {
           })}
         </div>
 
-        {/* Current Active Role / Switcher Card */}
+        {/* Current User Profile & Logout Card */}
         <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-950/50">
-          <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-2 overflow-hidden">
+          <div className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+            <div className="flex items-center gap-2.5 overflow-hidden">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs text-white ${
+                className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 ${
                   isOwner ? 'bg-indigo-600' : 'bg-amber-600'
                 }`}
               >
-                {isOwner ? 'OW' : 'CS'}
+                {isOwner ? 'CG' : 'CS'}
               </div>
               <div className="truncate text-xs">
-                <p className="font-semibold truncate text-slate-800 dark:text-slate-200">
-                  {currentUser.name.split(' ')[0]}
+                <p className="font-bold truncate text-slate-900 dark:text-white">
+                  {currentUser?.name || 'Staff User'}
                 </p>
-                <span className="text-[10px] text-slate-500 uppercase tracking-wide font-mono">
-                  {currentUser.role}
+                <span className="text-[10px] text-slate-500 font-medium block">
+                  {isOwner ? 'Shop Owner (Google Auth)' : currentUser?.station || 'Cashier Station'}
                 </span>
               </div>
             </div>
+
             <button
-              onClick={() => switchUser(isOwner ? 'CASHIER' : 'OWNER')}
-              title={`Switch to ${isOwner ? 'Cashier' : 'Owner'} Mode`}
-              className="text-[11px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium transition"
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
+              title="Sign Out of Session"
+              className="w-full py-1.5 px-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-700 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
             >
-              Switch
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
             </button>
           </div>
         </div>
@@ -390,6 +402,19 @@ export const AppShell: React.FC = () => {
             >
               {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
             </button>
+
+            {/* Quick Header Sign Out */}
+            <button
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
+              title="Sign Out"
+              className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40 transition"
+              aria-label="Sign out of POS session"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
@@ -494,16 +519,25 @@ export const AppShell: React.FC = () => {
                 );
               })}
             </div>
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-              <p className="text-xs text-slate-500 font-mono mb-2">Logged in as {currentUser.name}</p>
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
+              <div className="text-xs">
+                <p className="font-bold text-slate-900 dark:text-white truncate">
+                  {currentUser?.name || 'Staff User'}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  {isOwner ? 'Shop Owner (Google Auth)' : currentUser?.station || 'Cashier Station'}
+                </p>
+              </div>
               <button
                 onClick={() => {
-                  switchUser(isOwner ? 'CASHIER' : 'OWNER');
+                  logout();
                   setMobileMenuOpen(false);
+                  navigate('/login');
                 }}
-                className="w-full py-2 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                className="w-full py-2 text-xs font-semibold rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1.5 transition"
               >
-                Switch Role ({isOwner ? 'Cashier' : 'Owner'})
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
               </button>
             </div>
           </div>
